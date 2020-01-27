@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>AWS Deep Racer</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Custom styles for this template -->
+  <link href="css/scrolling-nav.css" rel="stylesheet">
+    
+  <link href="moving-letters.css" rel="stylesheet">
+    
+  
+
+<style>
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+<script>
+    anime.timeline({loop: true})
+      .add({
+        targets: '.ml15 .word',
+        scale: [14,1],
+        opacity: [0,1],
+        easing: "easeOutCirc",
+        duration: 800,
+        delay: (el, i) => 800 * i
+      }).add({
+        targets: '.ml15',
+        opacity: 0,
+        duration: 1000,
+        easing: "easeOutExpo",
+        delay: 1000
+      });
+    
+    </script>
+    
+      <link href="shaky.css" rel="stylesheet">
+
+</head>
+
+<body id="page-top">
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNav">
+    <div class="container">
+      <a class="navbar-brand js-scroll-trigger" href="#page-top">Deep Racer Project</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a class="nav-link js-scroll-trigger" href="#about">IAM Role &amp; Policy</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link js-scroll-trigger" href="#services">S3 Buckets</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link js-scroll-trigger" href="#contact">SageMaker instance</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="bg-primary text-white">
+    <div class="container text-center">
+      <h1 style="color: black;">AWS Machine Learning Infrastructure setup</h1>
+      <p class="lead" style="color: black;">A cloud machine learning platform for AWS deep racer</p>
+            <h2>Deep Racer</h2>
+    </div>
+      
+  
+    
+   
+      
+      <img src="AWS_DeepRacer_CI_CD_Project.png" alt="DeepRacer Architecture" class="center">
+  </header>
+
+  <section id="about">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <img src="Roles.png"/>
+          <h3 id="iam-role-and-policy-for-the-notebook-instance-">IAM Role and Policy for the notebook instance:</h3>
+        <pre><code># iam_sagemaker.tf
+
+        resource &quot;aws_iam_role&quot; &quot;sm_notebook_instance_role&quot; {
+          name = &quot;sm-notebook-instance-role&quot;
+           ...
+          }
+
+        resource &quot;aws_iam_role_policy_attachment&quot; &quot;sm_notebook_instance&quot; {
+          role       = &quot;${aws_iam_role.sm_notebook_instance_role.name}&quot;
+          policy_arn = &quot;${aws_iam_policy.sm_notebook_instance_policy.arn}&quot;
+        }
+
+        resource &quot;aws_iam_policy&quot; &quot;sm_notebook_instance_policy&quot; {
+          name        = &quot;sm-notebook-instance-policy&quot;
+          description = &quot;Policy for the Notebook Instance to manage training jobs, models and endpoints&quot;
+           ...
+        }
+        </code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="services" class="bg-light">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <img src="S3_Buckets.png"/>
+         <h3 id="s3-bucket-for-storing-the-jupyter-notebook-">S3 bucket for storing the Jupyter notebook:</h3>
+        <pre><code># s3_lambda.tf
+
+        resource &quot;aws_s3_bucket&quot; &quot;deep_racer_function_bucket&quot; {
+          bucket = &quot;${var.function_bucket_name}-${var.aws_region}&quot;
+          acl    = &quot;private&quot;
+          ...
+          }
+        </code></pre><h3 id="s3-bucket-for-storing-training-data-as-well-as-generated-model-data-">S3 bucket for storing training data as well as generated model data:</h3>
+        <pre><code># s3_sagemaker.tf
+
+        resource &quot;aws_s3_bucket&quot; &quot;s3_bucket_1&quot; {
+          bucket        = &quot;${var.s3_bucket_name_1}-${var.aws_region}&quot;
+          acl           = &quot;private&quot;
+          ...
+         }
+
+        resource &quot;aws_s3_bucket_object&quot; &quot;s3_deep_racer_notebook&quot; {
+          bucket = &quot;${aws_s3_bucket.deep_racer_function_bucket.id}&quot;
+          key    = &quot;tf-deep-racer-using-machine-learning/${var.function_version}/notebooks/DeepRacerLogAnalysis.ipynb&quot;
+          source = &quot;${path.module}/../source/notebooks/DeepRacerLogAnalysis.ipynb&quot;
+        }
+        </code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto">
+          <img src="SageMaker.png"/>
+          <h3 id="amazon-sagemaker-notebook-instance-">Amazon SageMaker notebook instance:</h3>
+        <pre><code># sagemaker.tf
+
+        resource &quot;aws_sagemaker_notebook_instance&quot; &quot;basic&quot; {
+          name                  = &quot;my-deepracer-model&quot;
+          role_arn              = &quot;${aws_iam_role.sm_notebook_instance_role.arn}&quot;
+          instance_type         = &quot;ml.t3.xlarge&quot;
+          ...
+        }
+        </code></pre><h3 id="notebook-instance-init-script-">Notebook instance init script:</h3>
+        <h4 id="init-script-that-downloads-the-notebook-from-the-aws_s3_bucket-deep_racer_function_bucket">init script that downloads the notebook from the aws_s3_bucket.deep_racer_function_bucket</h4>
+        <pre><code># sagemaker.tf
+
+        resource &quot;aws_sagemaker_notebook_instance&quot; &quot;basic&quot; {
+          name                  = &quot;my-deepracer-model&quot;
+          role_arn              = &quot;${aws_iam_role.sm_notebook_instance_role.arn}&quot;
+          instance_type         = &quot;ml.t3.xlarge&quot;
+          lifecycle_config_name = &quot;${aws_sagemaker_notebook_instance_lifecycle_configuration.basic_lifecycle.name}&quot;
+          ...
+        }
+
+        resource &quot;aws_sagemaker_notebook_instance_lifecycle_configuration&quot; &quot;basic_lifecycle&quot; {
+          name     = &quot;BasicNotebookInstanceLifecycleConfig&quot;
+
+          on_start = &quot;${base64encode(data.template_file.instance_init.rendered)}&quot;
+          ...
+        }
+
+        data &quot;template_file&quot; &quot;instance_init&quot; {
+          template = &quot;${file(&quot;${path.module}/template/sagemaker_instance_init.sh&quot;)}&quot;
+          ...
+        }
+        </code></pre><h3 id="sagemaker_instance_init-sh-script-to-copy-juypter-notebook-code-from-s3-bucket-to-sagemaker-instance-">sagemaker_instance_init.sh (script to copy Juypter notebook code from S3 bucket to Sagemaker instance)</h3>
+        <pre><code>   cd /home/ec2-user/SageMaker
+           aws s3 cp s3://${function_bucket_name}-${aws_region}/tf-deep-racer-using-machine-learning/${function_version}/notebooks  /DeepRacerLogAnalysis.ipynb .
+        </code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-5 bg-dark">
+    <div class="container">
+      <p class="m-0 text-center text-white">Deep Racer Team Project</p>
+    </div>
+    <!-- /.container -->
+  </footer>
+
+  <!-- Bootstrap core JavaScript -->
+  <script src="vendor/jquery/jquery.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Plugin JavaScript -->
+  <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+  <!-- Custom JavaScript for this theme -->
+  <script src="js/scrolling-nav.js"></script>
+
+</body>
+
+</html>
